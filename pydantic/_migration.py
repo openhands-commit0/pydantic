@@ -16,4 +16,42 @@ def getattr_migration(module: str) -> Callable[[str], Any]:
     Returns:
         A callable that will raise an error if the object is not found.
     """
-    pass
+    def __getattr__(name: str) -> Any:
+        from importlib import import_module
+
+        # Check if the attribute exists in the module's globals
+        module_globals = sys.modules[module].__dict__
+        if name in module_globals:
+            return module_globals[name]
+
+        # Check if it's a moved attribute
+        full_name = f"{module}:{name}"
+        if full_name in MOVED_IN_V2:
+            new_location = MOVED_IN_V2[full_name]
+            new_module, new_name = new_location.split(':')
+            return getattr(import_module(new_module), new_name)
+
+        # Check if it's a deprecated but moved attribute
+        if full_name in DEPRECATED_MOVED_IN_V2:
+            new_location = DEPRECATED_MOVED_IN_V2[full_name]
+            new_module, new_name = new_location.split(':')
+            return getattr(import_module(new_module), new_name)
+
+        # Check if it's redirected to V1
+        if full_name in REDIRECT_TO_V1:
+            new_location = REDIRECT_TO_V1[full_name]
+            new_module, new_name = new_location.split(':')
+            return getattr(import_module(new_module), new_name)
+
+        # Check if it's a removed attribute
+        if full_name in REMOVED_IN_V2:
+            raise PydanticImportError(f"`{full_name}` has been removed in V2.")
+
+        # Special case for BaseSettings
+        if name == 'BaseSettings':
+            raise PydanticImportError("`BaseSettings` has been moved to the `pydantic-settings` package. ")
+
+        # If not found anywhere, raise AttributeError
+        raise AttributeError(f"module '{module}' has no attribute '{name}'")
+
+    return __getattr__
