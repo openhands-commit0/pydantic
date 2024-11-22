@@ -303,6 +303,13 @@ if sys.version_info >= (3, 10):
 else:
     from typing_extensions import Self as _Self
 
+def is_generic_alias(type_: Any) -> bool:
+    """Check if a type is a generic alias (e.g., list[int], tuple[str, ...], etc.)"""
+    return (
+        isinstance(type_, (typing._GenericAlias, types.GenericAlias))
+        or (sys.version_info >= (3, 9) and isinstance(type_, typing._SpecialGenericAlias))
+    )
+
 def is_self_type(tp: Any) -> bool:
     """Check if a given class is a Self type (from `typing` or `typing_extensions`)"""
     return tp is _Self
