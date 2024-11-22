@@ -51,7 +51,8 @@ class PydanticUndefinedAnnotation(PydanticErrorMixin, NameError):
         Returns:
             Converted `PydanticUndefinedAnnotation` error.
         """
-        pass
+        name = str(name_error).split("'")[1] if "'" in str(name_error) else str(name_error)
+        return cls(name=name, message=str(name_error))
 
 class PydanticImportError(PydanticErrorMixin, ImportError):
     """An error raised when an import fails due to module changes between V1 and V2.
